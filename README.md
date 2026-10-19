@@ -223,6 +223,43 @@ Cloud calls in tests are deterministic mocks; no paid credentials are used.
 - A physical-device microphone/TTS session was not part of automated tests; browser support varies by platform.
 - The optional lawyer directory/admin backend is not deployed for this demo and contains no fabricated records.
 
+## Development tools used
+
+- **Flutter SDK 3.44.7** with Dart 3.12.2 for cross-platform development
+- **Android Studio** for Android development and emulator testing
+- **VS Code** with Flutter extension for web development
+- **Chrome DevTools** for debugging and performance profiling
+- **GitHub** for version control and repository hosting
+- **PowerShell** for build scripts and automation
+- **Netlify / Vercel** (optional) for web deployment
+
+## Challenges faced and lessons learned
+
+**Challenge 1: Vision model quota limits**
+- Gemini free tier vision API hit 429 errors during testing
+- **Solution:** Implemented automatic cross-provider fallback (Gemini → Groq) and honest error messaging
+- **Lesson:** Always design for graceful degradation; users need to know when a feature is offline
+
+**Challenge 2: Regional language support on devices**
+- Punjabi, Sindhi, and Pashto TTS voices are not available on all devices
+- **Solution:** Fallback to device default or installed Urdu/English voices; clear language availability messaging
+- **Lesson:** Test on real devices, not just emulators; provide honest limitations
+
+**Challenge 3: Privacy vs. AI capabilities**
+- Cloud AI features require sending user data; users in unsafe situations need discretion
+- **Solution:** Memory-only conversations, quick-exit calculator camouflage, explicit privacy notes before photo upload
+- **Lesson:** Privacy is a feature, not an afterthought; design for the most vulnerable users
+
+**Challenge 4: Legal information accuracy**
+- AI models can hallucinate precedents or misstate laws
+- **Solution:** Grounded retrieval from bundled statute corpus, explicit instruction to quote exact sections, uncertainty disclosure
+- **Lesson:** In high-stakes domains (law, health), retrieval-augmented generation is essential
+
+**Challenge 5: Offline vs. cloud experience**
+- Offline answers are faster but less comprehensive; cloud answers are richer but require connectivity
+- **Solution:** Offline-first design for core rights, optional cloud expansion, clear labeling of answer source
+- **Lesson:** Hybrid architectures work best in connectivity-challenged markets
+
 ## Team contributions
 
 > Solo project — all development, design, and AI integration by a single contributor.
