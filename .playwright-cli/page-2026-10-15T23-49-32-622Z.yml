@@ -1,0 +1,21 @@
+- generic [active] [ref=f3e5]:
+  - generic:
+    - generic:
+      - generic:
+        - generic:
+          - generic:
+            - button "Back" [ref=f3e33]
+            - generic [ref=f3e34]: Text Assistant
+            - generic [ref=f3e35]: English & Urdu · private session
+            - button "Quick exit to calculator" [ref=f3e36]
+            - button "Clear conversation" [ref=f3e37]
+            - generic:
+              - group:
+                - group:
+                  - progressbar "0" [ref=f3e48]
+                  - generic [ref=f3e54]: Registered Tenancy Agreement Mandatory Signed on appropriate stamp paper denomination.
+                  - generic [ref=f3e55]: Bank Receipts / Rent Receipts Mandatory Proof of timely or defaulted payment.
+                  - textbox [disabled] [ref=f3e52]
+            - generic [ref=f3e53]: Offline library · general information. Verify current law with a qualified lawyer.
+            - textbox "Type your legal question (Urdu or English)..." [ref=f3e45]
+            - generic [ref=f3e47]: This is general legal information, not legal advice. Consult a lawyer for specific matters.

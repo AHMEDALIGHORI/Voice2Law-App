@@ -1,0 +1,22 @@
+- generic [ref=f3e5]:
+  - generic:
+    - generic:
+      - generic:
+        - generic:
+          - generic:
+            - button "Back" [active] [ref=f3e33]
+            - generic [ref=f3e34]: Text Assistant
+            - generic [ref=f3e35]: English & Urdu · private session
+            - button "Quick exit to calculator" [ref=f3e36]
+            - button "Clear conversation" [ref=f3e37]
+            - generic:
+              - group:
+                - generic [ref=f3e38]: Assalam o Alaikum! I am the Voice2Law legal assistant. Ask a legal question in Urdu or English. 4:47 AM
+            - generic [ref=f3e39]: "Quick questions:"
+            - checkbox "What is the procedure for divorce in Pakistan?" [ref=f3e40]
+            - checkbox "What are tenant rights?" [ref=f3e41]
+            - checkbox "How is inheritance divided?" [ref=f3e42]
+            - checkbox "What is the importance of Nikah Nama?" [ref=f3e43]
+            - textbox "Type your legal question (Urdu or English)..." [ref=f3e45]
+            - button [ref=f3e46]
+            - generic [ref=f3e47]: This is general legal information, not legal advice. Consult a lawyer for specific matters.
