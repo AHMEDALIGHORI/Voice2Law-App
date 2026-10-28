@@ -158,33 +158,33 @@ flutter build web --release
 flutter build apk --release
 ```
 
-The source tree starts with **cloud AI off** and the bundled offline library available. No API key is required to explore the UI, read the rights cards or get offline answers. The attached hackathon release artifacts (APK and web build) instead ship with demo API keys compiled in via `--dart-define` (see `tool/build_demo.ps1`), so cloud AI is enabled by default there.
+The source tree starts with **cloud AI off** and the bundled offline library available. No API key is required to explore the UI, read the rights cards or get offline answers. Release artifacts built with `tool/build_demo.ps1` also ship **without any AI key**; builds can be pointed at a backend via `API_BASE_URL`, and users can paste their own key in Settings.
 
-### Enable live AI with your own keys (recommended)
+### Enable live AI (recommended)
 
-The demo keys embedded in the release artifacts are shared, public and rate-limited. For your own deployment, build with your own keys and rotate the demo ones (they were shared in chat and pasted into builds):
+AI keys are never compiled into the app — anything passed with `--dart-define` can be extracted from an APK or web bundle. Pick one of:
+
+1. **Backend mode** — build with `API_BASE_URL` pointing at a server that holds the provider keys, then turn off "Call providers directly" in Settings so prompts go through `/ai/text` and `/ai/voice`.
+2. **Bring your own key** — open **More → Settings / Preferences** in the app, enable cloud answers, choose a provider and paste a key at runtime:
+
+   - **Gemini** — text and photo explanation (vision)
+   - **Groq** — fast text answers
+   - **Seena** — OpenAI-compatible endpoint, with base URL
 
 ```powershell
-$env:GEMINI_API_KEY='your-gemini-key'
-$env:GROQ_API_KEY='your-groq-key'
+$env:API_BASE_URL='https://api.example.org/api'
 powershell -File tool/build_demo.ps1
 ```
 
-You can also open **More → Settings / Preferences** inside any build to turn on cloud answers, choose a provider and paste your own key at runtime:
-
-- **Gemini** — text and photo explanation (vision)
-- **Groq** — fast text answers
-- **Seena** — OpenAI-compatible endpoint, with base URL
-
-Keys are stored with platform secure storage on mobile and only in memory in the browser. **No API key, `.env` file or secret is committed to this repository** — build-time keys are compiled into the artifact only. Legacy plaintext credentials are discarded on first load.
+Keys pasted in the app are stored with platform secure storage on mobile and only in memory in the browser. **No API key, `.env` file or secret is committed to this repository.** Legacy plaintext credentials are discarded on first load.
 
 ## Validation
 
 ```text
 flutter analyze   → No issues found
 flutter test      → all 194 tests passing (widget, service, security and layout suites)
-flutter build web --release → succeeded (with demo keys compiled in)
-flutter build apk --release → succeeded; signed release APK at releases/Voice2Law-1.2.0-release.apk
+flutter build web --release → succeeded (no AI keys embedded)
+flutter build apk --release → succeeded; signed release APK at releases/Voice2Law-1.2.0-release.apk (gitignored)
 ```
 
 Live verification (19 October 2026, demo keys):

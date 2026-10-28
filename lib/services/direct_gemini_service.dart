@@ -130,9 +130,7 @@ Return raw JSON only without markdown formatting.
       return LocalLegalBrain.answerWithCorpus(trimmed);
     }
 
-    final String apiKey = _config.geminiApiKey.trim().isNotEmpty
-        ? _config.geminiApiKey.trim()
-        : AppConfig.defaultGeminiApiKey;
+    final String apiKey = _config.geminiApiKey.trim();
 
     if (!_config.cloudEnabled || apiKey.isEmpty) {
       debugPrint('[DirectGeminiService] No API key, using LocalLegalBrain');

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 import '../core/app_scope.dart';
+import '../core/contact_links.dart';
 import '../data/content_data.dart';
 import '../services/api_service.dart';
 import '../theme/app_theme.dart';
@@ -269,13 +270,12 @@ class _ContactScreenState extends State<ContactScreen> {
     return BrandCard(
       padding: const EdgeInsets.all(16),
       onTap: () {
-        if (icon == Icons.mail_outline) {
-          launchUrl(Uri.parse('mailto:$value'));
-        } else if (icon == Icons.phone_outlined) {
-          launchUrl(
-            Uri.parse('tel:${value.replaceAll(RegExp(r'[^0-9+]'), '')}'),
-          );
-        }
+        final Uri? uri = icon == Icons.mail_outline
+            ? ContactLinks.mailto(value)
+            : icon == Icons.phone_outlined
+            ? ContactLinks.tel(value)
+            : null;
+        if (uri != null) launchUrl(uri);
       },
       child: Row(
         children: <Widget>[

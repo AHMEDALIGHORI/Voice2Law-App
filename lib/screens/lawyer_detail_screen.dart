@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:url_launcher/url_launcher.dart';
 
+import '../core/contact_links.dart';
 import '../models/models.dart';
 import '../theme/app_theme.dart';
 import '../widgets/brand.dart';
@@ -14,6 +15,9 @@ class LawyerDetailScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final Uri? callUri = ContactLinks.tel(lawyer.phoneNumber);
+    final Uri? whatsappUri = ContactLinks.whatsapp(lawyer.whatsapp);
+    final Uri? emailUri = ContactLinks.mailto(lawyer.email);
     return Scaffold(
       appBar: AppBar(title: const Text('Lawyer Profile')),
       body: ListView(
@@ -141,35 +145,31 @@ class LawyerDetailScreen extends StatelessWidget {
           ),
           const SizedBox(height: 20),
           BrandButton(
-            label: lawyer.phoneNumber.isEmpty
+            label: callUri == null
                 ? 'Call unavailable'
                 : 'Call ${lawyer.phoneNumber}',
             icon: Icons.call,
-            onPressed: lawyer.phoneNumber.isEmpty
-                ? null
-                : () => launchUrl(Uri.parse('tel:${lawyer.phoneNumber}')),
+            onPressed: callUri == null ? null : () => launchUrl(callUri),
           ),
           const SizedBox(height: 12),
           BrandButton(
             label: 'Message on WhatsApp',
             icon: Icons.chat,
             kind: ButtonStyleKind.gold,
-            onPressed: lawyer.whatsapp.isEmpty
+            onPressed: whatsappUri == null
                 ? null
                 : () => launchUrl(
-                    Uri.parse(
-                      'https://wa.me/${lawyer.whatsapp.replaceAll('+', '')}',
-                    ),
+                    whatsappUri,
                     mode: LaunchMode.externalApplication,
                   ),
           ),
-          if (lawyer.email.isNotEmpty) ...<Widget>[
+          if (emailUri != null) ...<Widget>[
             const SizedBox(height: 12),
             BrandButton(
               label: 'Send an email',
               icon: Icons.mail_outline,
               kind: ButtonStyleKind.outline,
-              onPressed: () => launchUrl(Uri.parse('mailto:${lawyer.email}')),
+              onPressed: () => launchUrl(emailUri),
             ),
           ],
           const SizedBox(height: 18),

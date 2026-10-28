@@ -11,9 +11,9 @@ void main() {
     await AppConfig.instance.load();
   });
   test('default installation has no credential and cloud is off', () {
-    expect(AppConfig.instance.geminiApiKey, AppConfig.defaultGeminiApiKey);
+    expect(AppConfig.instance.geminiApiKey, isEmpty);
     expect(AppConfig.instance.apiToken, isEmpty);
-    expect(AppConfig.instance.cloudEnabled, AppConfig.hasBuiltInAiKey);
+    expect(AppConfig.instance.cloudEnabled, isFalse);
   });
   test('credentials persist securely, not in SharedPreferences', () async {
     final config = AppConfig.instance;
@@ -36,7 +36,7 @@ void main() {
       'api_token': 'legacy-token',
     });
     await AppConfig.instance.load();
-    expect(AppConfig.instance.geminiApiKey, AppConfig.defaultGeminiApiKey);
+    expect(AppConfig.instance.geminiApiKey, isEmpty);
     expect(AppConfig.instance.apiToken, isEmpty);
     final prefs = await SharedPreferences.getInstance();
     expect(prefs.containsKey('gemini_api_key'), isFalse);
@@ -50,8 +50,8 @@ void main() {
       await prefs.setInt('admin_locked_until', 123);
       await config.reset();
       await config.load();
-      expect(config.geminiApiKey, AppConfig.defaultGeminiApiKey);
-      expect(config.cloudEnabled, AppConfig.hasBuiltInAiKey);
+      expect(config.geminiApiKey, isEmpty);
+      expect(config.cloudEnabled, isFalse);
       expect(prefs.getInt('admin_locked_until'), 123);
     },
   );
@@ -62,5 +62,33 @@ void main() {
       ),
       throwsFormatException,
     );
+  });
+
+  test('Seena base URL is validated and normalised', () async {
+    final config = AppConfig.instance;
+    await expectLater(
+      config.update(seenaBaseUrl: 'ftp://example.org'),
+      throwsFormatException,
+    );
+    await expectLater(
+      config.update(seenaBaseUrl: 'https://user:pass@example.org'),
+      throwsFormatException,
+    );
+    await config.update(seenaBaseUrl: 'https://api.seena.example/');
+    expect(config.seenaBaseUrl, 'https://api.seena.example');
+    await config.update(seenaBaseUrl: '');
+    expect(config.seenaBaseUrl, isEmpty);
+  });
+
+  test('a rejected endpoint does not persist earlier fields', () async {
+    final config = AppConfig.instance;
+    await expectLater(
+      config.update(
+        userName: 'Should Not Persist',
+        apiBaseUrl: 'https://user:password@example.org/api',
+      ),
+      throwsFormatException,
+    );
+    expect(config.userName, 'Anonymous');
   });
 }

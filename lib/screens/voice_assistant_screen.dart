@@ -191,7 +191,7 @@ class _VoiceAssistantScreenState extends State<VoiceAssistantScreen> {
     try {
       if (!services.config.cloudEnabled) {
         answer = await LocalLegalBrain.answerWithCorpus(question);
-      } else if (services.config.cloudEnabled) {
+      } else if (services.config.directAiEnabled) {
         answer = await services.multiProviderAi.askLegalQuestion(
           question,
           history: history,
@@ -206,11 +206,9 @@ class _VoiceAssistantScreenState extends State<VoiceAssistantScreen> {
     } on ApiException {
       if (!mounted || epoch != services.conversation.epoch) return;
       answer = await LocalLegalBrain.answerWithCorpus(question);
-      _usedOfflineFallback = true;
     } catch (_) {
       if (!mounted || epoch != services.conversation.epoch) return;
       answer = await LocalLegalBrain.answerWithCorpus(question);
-      _usedOfflineFallback = true;
     }
 
     answer = await _completeSelectedLanguage(answer, services);
@@ -369,7 +367,7 @@ class _VoiceAssistantScreenState extends State<VoiceAssistantScreen> {
                   if (_transcript.isNotEmpty) _transcriptCard(),
                   if (_isProcessing) _processingRow(),
                   if (_aiAnswer != null) _responseCard(),
-                  if (!_speechReady) _manualEntry(),
+                  _manualEntry(),
                   const SizedBox(height: 8),
                   Center(
                     child: Text(
@@ -463,11 +461,7 @@ class _VoiceAssistantScreenState extends State<VoiceAssistantScreen> {
     );
     final Widget quickExit = IconButton(
       tooltip: 'Quick exit to calculator',
-      icon: const Icon(
-        Icons.shield_outlined,
-        color: AppColors.white,
-        size: 24,
-      ),
+      icon: const Icon(Icons.shield_outlined, color: AppColors.white, size: 24),
       onPressed: () => DiscreetModeDialog.triggerPanicExit(context),
     );
     final Widget micBadge = Container(
@@ -995,18 +989,20 @@ class _VoiceAssistantScreenState extends State<VoiceAssistantScreen> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: <Widget>[
-            const Row(
+            Row(
               children: <Widget>[
-                Icon(
+                const Icon(
                   Icons.keyboard_alt_outlined,
                   size: 19,
                   color: AppColors.goldText,
                 ),
-                SizedBox(width: 8),
+                const SizedBox(width: 8),
                 Expanded(
                   child: Text(
-                    'Type your question instead',
-                    style: TextStyle(
+                    _speechReady
+                        ? 'Or type your question'
+                        : 'Type your question instead',
+                    style: const TextStyle(
                       fontWeight: FontWeight.w700,
                       color: AppColors.darkGreen,
                       fontSize: 14.5,

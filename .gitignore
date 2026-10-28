@@ -49,6 +49,9 @@ app.*.map.json
 *.jks
 *.keystore
 
+# Built release artifacts (may contain compiled-in API keys)
+/releases/
+
 # Local language runtime, downloaded models and private pairing secret
 /local_language/.venv/
 /local_language/models/

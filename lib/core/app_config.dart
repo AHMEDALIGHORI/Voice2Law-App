@@ -36,31 +36,14 @@ class AppConfig extends ChangeNotifier {
   static const String defaultApiBaseUrl = String.fromEnvironment(
     'API_BASE_URL',
   );
-  static const String defaultGeminiApiKey = String.fromEnvironment(
-    'GEMINI_API_KEY',
-  );
-  static const String defaultGroqApiKey = String.fromEnvironment(
-    'GROQ_API_KEY',
-  );
-  static const String defaultSeenaApiKey = String.fromEnvironment(
-    'SEENA_API_KEY',
-  );
   static const String defaultSeenaBaseUrl = String.fromEnvironment(
     'SEENA_BASE_URL',
   );
 
-  /// True when the build was compiled with at least one demo key.
-  static bool get hasBuiltInAiKey =>
-      defaultGeminiApiKey.isNotEmpty ||
-      defaultGroqApiKey.isNotEmpty ||
-      defaultSeenaApiKey.isNotEmpty;
-
-  /// Provider used for a fresh install / demo build.
-  static String get defaultAiProvider {
-    if (defaultGeminiApiKey.isNotEmpty) return 'gemini';
-    if (defaultGroqApiKey.isNotEmpty) return 'groq';
-    return 'gemini';
-  }
+  /// Provider used for a fresh install. AI keys are never compiled into the
+  /// binary: users either paste their own key in Settings or route through
+  /// the backend (`directAiEnabled: false`).
+  static const String defaultAiProvider = 'gemini';
 
   final CredentialStore _credentials = CredentialStore();
   bool cloudEnabled = false;
@@ -75,9 +58,9 @@ class AppConfig extends ChangeNotifier {
   bool ttsEnabled = false;
   String sttLocale = 'auto';
   String adminName = 'Voice2Law Admin';
-  String geminiApiKey = defaultGeminiApiKey;
-  String groqApiKey = defaultGroqApiKey;
-  String seenaApiKey = defaultSeenaApiKey;
+  String geminiApiKey = '';
+  String groqApiKey = '';
+  String seenaApiKey = '';
   String seenaBaseUrl = defaultSeenaBaseUrl;
 
   /// Selected AI provider: 'gemini' | 'groq' | 'seena'.
@@ -110,8 +93,12 @@ class AppConfig extends ChangeNotifier {
     // Discard legacy plaintext credentials rather than retaining the bundled key.
     await prefs.remove(_kApiToken);
     await prefs.remove(_kGeminiApiKey);
+    await prefs.remove(_kGroqApiKey);
+    await prefs.remove(_kSeenaApiKey);
     apiToken = await _credentials.read(_kApiToken) ?? '';
-    cloudEnabled = prefs.getBool('cloud_enabled') ?? hasBuiltInAiKey;
+    // Cloud answers are opt-in even when the build carries demo keys, so a
+    // shipped binary never sends prompts off-device without explicit consent.
+    cloudEnabled = prefs.getBool('cloud_enabled') ?? false;
     localLanguagesEnabled = prefs.getBool('local_languages_enabled') ?? false;
     localLanguageUrl = prefs.getString('local_language_url') ?? '';
     localLanguageKey = await _credentials.read('local_language_key') ?? '';
@@ -120,10 +107,9 @@ class AppConfig extends ChangeNotifier {
     ttsEnabled = prefs.getBool(_kTtsEnabled) ?? false;
     sttLocale = prefs.getString(_kSttLocale) ?? 'auto';
     adminName = prefs.getString(_kAdminName) ?? 'Voice2Law Admin';
-    geminiApiKey =
-        await _credentials.read(_kGeminiApiKey) ?? defaultGeminiApiKey;
-    groqApiKey = await _credentials.read(_kGroqApiKey) ?? defaultGroqApiKey;
-    seenaApiKey = await _credentials.read(_kSeenaApiKey) ?? defaultSeenaApiKey;
+    geminiApiKey = await _credentials.read(_kGeminiApiKey) ?? '';
+    groqApiKey = await _credentials.read(_kGroqApiKey) ?? '';
+    seenaApiKey = await _credentials.read(_kSeenaApiKey) ?? '';
     seenaBaseUrl = prefs.getString(_kSeenaBaseUrl) ?? defaultSeenaBaseUrl;
     selectedAiProvider =
         prefs.getString(_kSelectedAiProvider) ?? defaultAiProvider;
@@ -152,6 +138,14 @@ class AppConfig extends ChangeNotifier {
     String? localLanguageUrl,
     String? localLanguageKey,
   }) async {
+    // Validate every endpoint up front so a bad URL cannot leave the settings
+    // half-written (field-by-field persistence below is not transactional).
+    final String? nextApiBaseUrl = apiBaseUrl == null
+        ? null
+        : _normalise(apiBaseUrl);
+    final String? nextSeenaBaseUrl = seenaBaseUrl == null
+        ? null
+        : _normaliseOptional(seenaBaseUrl);
     final SharedPreferences prefs = await SharedPreferences.getInstance();
     if (localLanguagesEnabled != null) {
       this.localLanguagesEnabled = localLanguagesEnabled;
@@ -166,7 +160,7 @@ class AppConfig extends ChangeNotifier {
       await _credentials.write('local_language_key', this.localLanguageKey);
     }
     if (apiBaseUrl != null) {
-      this.apiBaseUrl = _normalise(apiBaseUrl);
+      this.apiBaseUrl = nextApiBaseUrl!;
       await prefs.setString(_kApiBaseUrl, this.apiBaseUrl);
     }
     if (apiToken != null) {
@@ -208,7 +202,7 @@ class AppConfig extends ChangeNotifier {
       await _credentials.write(_kSeenaApiKey, this.seenaApiKey);
     }
     if (seenaBaseUrl != null) {
-      this.seenaBaseUrl = seenaBaseUrl.trim();
+      this.seenaBaseUrl = nextSeenaBaseUrl!;
       await prefs.setString(_kSeenaBaseUrl, this.seenaBaseUrl);
     }
     if (selectedAiProvider != null) {
@@ -279,9 +273,9 @@ class AppConfig extends ChangeNotifier {
     ttsEnabled = false;
     sttLocale = 'auto';
     adminName = 'Voice2Law Admin';
-    geminiApiKey = defaultGeminiApiKey;
-    groqApiKey = defaultGroqApiKey;
-    seenaApiKey = defaultSeenaApiKey;
+    geminiApiKey = '';
+    groqApiKey = '';
+    seenaApiKey = '';
     selectedAiProvider = defaultAiProvider;
     directAiEnabled = true;
     languagePreference = 'en';
@@ -289,9 +283,23 @@ class AppConfig extends ChangeNotifier {
   }
 
   static String _normalise(String value) {
+    final String trimmed = value.trim();
+    if (trimmed.isEmpty) return defaultApiBaseUrl;
+    return _validateEndpoint(trimmed);
+  }
+
+  /// Like [_normalise] but keeps an empty value empty, so optional endpoints
+  /// (for example the Seena base URL) can be cleared instead of falling back
+  /// to a default.
+  static String _normaliseOptional(String value) {
+    final String trimmed = value.trim();
+    if (trimmed.isEmpty) return '';
+    return _validateEndpoint(trimmed);
+  }
+
+  static String _validateEndpoint(String value) {
     String url = value.trim();
-    if (url.isEmpty) return defaultApiBaseUrl;
-    if (!url.startsWith('http://') && !url.startsWith('https://')) {
+    if (!url.contains('://')) {
       url = 'https://$url';
     }
     while (url.endsWith('/')) {
@@ -310,5 +318,20 @@ class AppConfig extends ChangeNotifier {
       );
     }
     return url;
+  }
+
+  /// True when `Authorization` headers and prompts may be sent to [value].
+  ///
+  /// Guards endpoints that are resolved from user input or persisted state:
+  /// HTTPS only in release builds, with plain HTTP tolerated in debug builds.
+  static bool isAllowedRemoteUrl(String value) {
+    final Uri? uri = Uri.tryParse(value.trim());
+    if (uri == null ||
+        !uri.hasAuthority ||
+        uri.host.isEmpty ||
+        uri.userInfo.isNotEmpty) {
+      return false;
+    }
+    return uri.scheme == 'https' || (kDebugMode && uri.scheme == 'http');
   }
 }

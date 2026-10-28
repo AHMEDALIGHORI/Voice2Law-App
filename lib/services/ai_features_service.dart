@@ -269,6 +269,14 @@ class AiFeaturesService {
         offline: true,
       );
     }
+    if (!AppConfig.isAllowedRemoteUrl(baseUrl)) {
+      _lastStatus = 'insecure_url';
+      return const AiFeatureResult(
+        success: false,
+        content: 'Seena base URL must use HTTPS. Please update it in Settings.',
+        offline: true,
+      );
+    }
 
     final Uri uri = Uri.parse(
       baseUrl.endsWith('/')

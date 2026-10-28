@@ -36,7 +36,13 @@ class AuthController extends ChangeNotifier {
     final prefs = await SharedPreferences.getInstance();
     _failedAttempts = prefs.getInt('admin_failed_attempts') ?? 0;
     final lock = prefs.getInt('admin_locked_until');
-    if (lock != null) _lockedUntil = DateTime.fromMillisecondsSinceEpoch(lock);
+    if (lock != null) {
+      final DateTime until = DateTime.fromMillisecondsSinceEpoch(lock);
+      // Clamp so moving the device clock backwards cannot extend the lockout
+      // beyond its configured length.
+      final DateTime cap = _now().add(lockoutDuration);
+      _lockedUntil = until.isAfter(cap) ? cap : until;
+    }
     _scheduleUnlock();
     final started = prefs.getInt('admin_session_started');
     if (started == null || !_api.hasToken) return;
@@ -75,14 +81,16 @@ class AuthController extends ChangeNotifier {
       _failedAttempts = 0;
       _lockedUntil = null;
     }
+    if (!_api.hasToken) {
+      _error = 'Add an admin token in Settings first.';
+      notifyListeners();
+      return false;
+    }
     _isLoading = true;
     _error = null;
     notifyListeners();
     final generation = _generation;
     try {
-      if (!_api.hasToken) {
-        throw ApiException('Add an admin token in Settings first.');
-      }
       final profile = await _api.authMe();
       if (generation != _generation) return false;
       if (!profile.isAdmin) {
@@ -103,25 +111,41 @@ class AuthController extends ChangeNotifier {
       _lockedUntil = null;
       _accept(profile, _now().add(sessionTimeout));
       return true;
+    } on ApiException catch (error) {
+      if (generation != _generation) return false;
+      if (error.isNetworkError) {
+        // Transport failures say nothing about the credential, so they must
+        // not count towards the lockout (and cannot self-lock the user out).
+        _error =
+            'Cannot reach the server. Check your connection and try again.';
+        return false;
+      }
+      await _recordFailedAttempt();
+      _error =
+          'Could not verify admin access. Check your server and token in Settings.';
+      return false;
     } catch (_) {
       if (generation != _generation) return false;
-      _failedAttempts++;
-      final prefs = await SharedPreferences.getInstance();
-      await prefs.setInt('admin_failed_attempts', _failedAttempts);
-      if (_failedAttempts >= 5) {
-        _lockedUntil = _now().add(lockoutDuration);
-        await prefs.setInt(
-          'admin_locked_until',
-          _lockedUntil!.millisecondsSinceEpoch,
-        );
-        _scheduleUnlock();
-      }
       _error =
           'Could not verify admin access. Check your server and token in Settings.';
       return false;
     } finally {
       _isLoading = false;
       notifyListeners();
+    }
+  }
+
+  Future<void> _recordFailedAttempt() async {
+    _failedAttempts++;
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setInt('admin_failed_attempts', _failedAttempts);
+    if (_failedAttempts >= 5) {
+      _lockedUntil = _now().add(lockoutDuration);
+      await prefs.setInt(
+        'admin_locked_until',
+        _lockedUntil!.millisecondsSinceEpoch,
+      );
+      _scheduleUnlock();
     }
   }
 

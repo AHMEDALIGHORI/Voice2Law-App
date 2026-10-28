@@ -106,7 +106,8 @@ class MultiProviderAiService {
         return _config.groqApiKey.trim().isNotEmpty;
       case 'seena':
         return _config.seenaApiKey.trim().isNotEmpty &&
-            _config.seenaBaseUrl.trim().isNotEmpty;
+            _config.seenaBaseUrl.trim().isNotEmpty &&
+            AppConfig.isAllowedRemoteUrl(_config.seenaBaseUrl);
       case 'gemini':
       default:
         return _config.geminiApiKey.trim().isNotEmpty;

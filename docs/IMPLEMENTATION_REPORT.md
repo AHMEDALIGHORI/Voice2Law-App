@@ -2,7 +2,7 @@
 
 ## Delivered
 
-- Compiled-in demo keys: release artifacts are built with `GEMINI_API_KEY` / `GROQ_API_KEY` supplied via `--dart-define` and read by `AppConfig` through `String.fromEnvironment`. Fresh installs default to cloud-enabled with Gemini as the provider; keys can be overridden or removed at runtime in Settings. No key is stored in source; `tool/build_demo.ps1` rebuilds artifacts from environment variables.
+- No compiled-in AI keys: `AppConfig` no longer reads `GEMINI_API_KEY` / `GROQ_API_KEY` / `SEENA_API_KEY` through `String.fromEnvironment`; a release binary contains no provider secret. Fresh installs start with cloud answering off and empty key fields. Users paste their own key in Settings (secure storage / memory-only on web) or route through a backend via `API_BASE_URL` with direct calls disabled. `tool/build_demo.ps1` refuses to embed keys and only forwards the non-secret base URLs.
 - Cross-provider fallback: if the selected cloud provider fails (quota, timeout, offline), the app automatically retries on the other configured provider before falling back to `LocalLegalBrain`, for both the assistants (`MultiProviderAiService`) and all 13 cloud-backed AI tools (`AiFeaturesService`). Snap & Explain vision remains Gemini-only (no vision model on the other supported providers).
 - UTF-8-safe response decoding: all provider responses are decoded from raw bytes as UTF-8 regardless of response charset headers, so Urdu/Shahmukhi/Sindhi/Pashto text survives even when providers omit `charset=utf-8`.
 - Raised AI request timeouts to 60 s, sent explicit `Content-Type: application/json; charset=utf-8` on every provider request, and removed temporary debug instrumentation from the provider services.

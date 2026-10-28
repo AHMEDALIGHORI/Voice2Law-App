@@ -71,30 +71,44 @@ class _SettingsScreenState extends State<SettingsScreen> {
     super.dispose();
   }
 
+  static String _trimTrailingSlashes(String value) {
+    String url = value.trim();
+    while (url.endsWith('/')) {
+      url = url.substring(0, url.length - 1);
+    }
+    return url;
+  }
+
   Future<void> _save() async {
     if (_saving) return;
     final services = AppScope.of(context);
     setState(() => _saving = true);
     try {
       if (_cloud) {
-        final String activeKey =
-            _aiProvider == 'groq'
-                ? _groqKey.text.trim()
-                : _aiProvider == 'seena'
-                    ? _seenaKey.text.trim()
-                    : _key.text.trim();
-        if (activeKey.isEmpty &&
-            (_aiProvider == 'seena' ? _seenaUrl.text.trim().isEmpty : true)) {
+        final String activeKey = _aiProvider == 'groq'
+            ? _groqKey.text.trim()
+            : _aiProvider == 'seena'
+            ? _seenaKey.text.trim()
+            : _key.text.trim();
+        if (activeKey.isEmpty) {
           throw const FormatException(
             'Add your API key for the selected provider before enabling cloud answers.',
           );
         }
+        if (_aiProvider == 'seena' && _seenaUrl.text.trim().isEmpty) {
+          throw const FormatException(
+            'Add the Seena server URL before enabling cloud answers.',
+          );
+        }
       }
-      if (services.config.apiToken != _token.text.trim() ||
-          services.config.apiBaseUrl != _url.text.trim()) {
-        services.auth.invalidate();
-      }
-      await services.clearPrivateSession();
+
+      final bool serverChanged =
+          services.config.apiToken != _token.text.trim() ||
+          services.config.apiBaseUrl != _trimTrailingSlashes(_url.text);
+
+      // Persist first. A rejected URL or storage failure throws here, before
+      // the admin session is invalidated or private data is cleared, so a
+      // failed save no longer logs the user out.
       await services.config.update(
         apiBaseUrl: _url.text,
         apiToken: _token.text,
@@ -111,6 +125,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
         userEmail: _email.text,
         languagePreference: _langPref,
       );
+      if (serverChanged) services.auth.invalidate();
+      await services.clearPrivateSession();
       if (mounted) {
         ScaffoldMessenger.of(
           context,
@@ -189,17 +205,10 @@ class _SettingsScreenState extends State<SettingsScreen> {
                       value: 'gemini',
                       child: Text('Google Gemini'),
                     ),
-                    DropdownMenuItem(
-                      value: 'groq',
-                      child: Text('Groq'),
-                    ),
-                    DropdownMenuItem(
-                      value: 'seena',
-                      child: Text('Seena'),
-                    ),
+                    DropdownMenuItem(value: 'groq', child: Text('Groq')),
+                    DropdownMenuItem(value: 'seena', child: Text('Seena')),
                   ],
-                  onChanged: (v) =>
-                      setState(() => _aiProvider = v ?? 'gemini'),
+                  onChanged: (v) => setState(() => _aiProvider = v ?? 'gemini'),
                 ),
                 const SizedBox(height: 16),
                 if (_aiProvider == 'gemini')
@@ -302,7 +311,10 @@ class _SettingsScreenState extends State<SettingsScreen> {
                               const SizedBox(height: 12),
                               const Text(
                                 'Keys are stored securely on your device and are never shared.',
-                                style: TextStyle(fontStyle: FontStyle.italic, fontSize: 12),
+                                style: TextStyle(
+                                  fontStyle: FontStyle.italic,
+                                  fontSize: 12,
+                                ),
                               ),
                             ],
                           ),
@@ -449,8 +461,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
                   };
                   final String source = (status == null || status == 'ok')
                       ? (services.config.cloudEnabled
-                          ? '${provider.toUpperCase()} AI (cloud)'
-                          : 'Bundled Legal Library')
+                            ? '${provider.toUpperCase()} AI (cloud)'
+                            : 'Bundled Legal Library')
                       : 'Bundled Legal Library';
                   return Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
@@ -475,10 +487,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                                 : Colors.green,
                           ),
                           const SizedBox(width: 8),
-                          Text(
-                            source,
-                            style: const TextStyle(fontSize: 13),
-                          ),
+                          Text(source, style: const TextStyle(fontSize: 13)),
                         ],
                       ),
                       if (status != null && status != 'ok') ...[

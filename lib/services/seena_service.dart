@@ -133,6 +133,14 @@ Return raw JSON only without markdown formatting.
       return LocalLegalBrain.answerWithCorpus(trimmed);
     }
 
+    // Never send a bearer token or the user's question to a cleartext or
+    // otherwise malformed endpoint.
+    if (!AppConfig.isAllowedRemoteUrl(baseUrl)) {
+      debugPrint('[SeenaService] Refusing insecure base URL');
+      lastSeenaStatus = 'insecure_url';
+      return LocalLegalBrain.answerWithCorpus(trimmed);
+    }
+
     final Uri uri = Uri.parse(
       baseUrl.endsWith('/')
           ? '${baseUrl}chat/completions'

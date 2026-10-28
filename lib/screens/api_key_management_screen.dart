@@ -21,10 +21,15 @@ class _ApiKeyManagementScreenState extends State<ApiKeyManagementScreen> {
   String? _editingProvider;
   final Map<String, TextEditingController> _controllers = {};
   bool _saving = false;
+  bool _controllersLoaded = false;
 
   @override
-  void initState() {
-    super.initState();
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    // AppScope.of() cannot be resolved in initState(); load the controllers
+    // once dependencies are available.
+    if (_controllersLoaded) return;
+    _controllersLoaded = true;
     _loadControllers();
   }
 
@@ -69,19 +74,19 @@ class _ApiKeyManagementScreenState extends State<ApiKeyManagementScreen> {
     try {
       switch (providerId) {
         case 'gemini':
-          await AppScope.of(context).config.update(
-            geminiApiKey: controller.text.trim(),
-          );
+          await AppScope.of(
+            context,
+          ).config.update(geminiApiKey: controller.text.trim());
           break;
         case 'groq':
-          await AppScope.of(context).config.update(
-            groqApiKey: controller.text.trim(),
-          );
+          await AppScope.of(
+            context,
+          ).config.update(groqApiKey: controller.text.trim());
           break;
         case 'seena':
-          await AppScope.of(context).config.update(
-            seenaApiKey: controller.text.trim(),
-          );
+          await AppScope.of(
+            context,
+          ).config.update(seenaApiKey: controller.text.trim());
           break;
       }
       if (mounted) {
@@ -96,9 +101,9 @@ class _ApiKeyManagementScreenState extends State<ApiKeyManagementScreen> {
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Failed to save key')),
-        );
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(const SnackBar(content: Text('Failed to save key')));
       }
     } finally {
       if (mounted) setState(() => _saving = false);
@@ -119,9 +124,9 @@ class _ApiKeyManagementScreenState extends State<ApiKeyManagementScreen> {
     }
     _controllers[providerId]?.clear();
     if (mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Key removed')),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('Key removed')));
     }
   }
 
@@ -179,11 +184,14 @@ class _ApiKeyManagementScreenState extends State<ApiKeyManagementScreen> {
                         ? Text(
                             'Key: ${_masked(_controllers[id]!.text)}',
                             style: const TextStyle(
-                                fontSize: 12, fontFamily: 'monospace'),
+                              fontSize: 12,
+                              fontFamily: 'monospace',
+                            ),
                           )
-                        : const Text('No key',
-                            style:
-                                TextStyle(fontSize: 12, color: Colors.grey)),
+                        : const Text(
+                            'No key',
+                            style: TextStyle(fontSize: 12, color: Colors.grey),
+                          ),
                   );
                 }),
               ],
@@ -211,7 +219,9 @@ class _ApiKeyManagementScreenState extends State<ApiKeyManagementScreen> {
                           child: Text(
                             p['name'] as String,
                             style: const TextStyle(
-                                fontWeight: FontWeight.w600, fontSize: 15),
+                              fontWeight: FontWeight.w600,
+                              fontSize: 15,
+                            ),
                           ),
                         ),
                         if (controller.text.isNotEmpty)
@@ -275,8 +285,8 @@ class _ApiKeyManagementScreenState extends State<ApiKeyManagementScreen> {
                         ],
                       ],
                     ),
-                    ],
-              ),
+                  ],
+                ),
               ),
             );
           }),

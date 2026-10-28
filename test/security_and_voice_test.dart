@@ -6,6 +6,7 @@ import 'package:http/http.dart' as http;
 import 'package:http/testing.dart';
 import 'package:voice2law_app/core/app_config.dart';
 import 'package:voice2law_app/core/auth_controller.dart';
+import 'package:voice2law_app/core/contact_links.dart';
 import 'package:voice2law_app/services/api_service.dart';
 
 void main() {
@@ -72,6 +73,20 @@ void main() {
       auth.dispose();
     },
   );
+  test('network failures cannot lock the admin out', () async {
+    final api = ApiService(
+      AppConfig.instance,
+      MockClient((_) async => throw http.ClientException('offline')),
+    );
+    final auth = AuthController(api);
+    for (var i = 0; i < 7; i++) {
+      expect(await auth.login('', ''), isFalse);
+    }
+    expect(auth.failedAttempts, 0);
+    expect(auth.isLocked, isFalse);
+    expect(auth.error, contains('Cannot reach the server'));
+    auth.dispose();
+  });
   test('restoration revalidates server identity', () async {
     var calls = 0;
     final prefs = await SharedPreferences.getInstance();
@@ -132,4 +147,17 @@ void main() {
       expect(answer.offline, isTrue);
     },
   );
+  test('contact links reject injected URI payloads', () {
+    expect(ContactLinks.tel('123'), isNull);
+    expect(
+      ContactLinks.tel('0300-1234567;foo'),
+      Uri(scheme: 'tel', path: '03001234567'),
+    );
+    expect(ContactLinks.mailto('a@b.c?bcc=attacker@evil.com'), isNull);
+    expect(ContactLinks.mailto('not-an-email'), isNull);
+    expect(
+      ContactLinks.whatsapp('+92 300 1234567'),
+      Uri.parse('https://wa.me/923001234567'),
+    );
+  });
 }

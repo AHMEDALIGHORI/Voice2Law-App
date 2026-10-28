@@ -352,10 +352,13 @@ class ApiService {
         .toList();
   }
 
+  /// Encodes a server-supplied identifier so it cannot alter the request path.
+  static String _segment(String id) => Uri.encodeComponent(id);
+
   Future<QueryRecord> updateQuery(String id, QueryRecord query) async {
     final Map<String, dynamic> json = await _send(
       'PUT',
-      '/queries/$id',
+      '/queries/${_segment(id)}',
       body: query.toJson(),
     );
     return QueryRecord.fromJson(
@@ -363,7 +366,8 @@ class ApiService {
     );
   }
 
-  Future<void> deleteQuery(String id) => _send('DELETE', '/queries/$id');
+  Future<void> deleteQuery(String id) =>
+      _send('DELETE', '/queries/${_segment(id)}');
 
   Future<List<LegalEntry>> getKnowledgeBase() async {
     final Map<String, dynamic> json = await _send('GET', '/knowledge-base');
@@ -387,14 +391,14 @@ class ApiService {
   Future<LegalEntry> updateKnowledgeEntry(String id, LegalEntry entry) async {
     final Map<String, dynamic> json = await _send(
       'PUT',
-      '/knowledge-base/$id',
+      '/knowledge-base/${_segment(id)}',
       body: entry.toJson(),
     );
     return LegalEntry.fromJson(Map<String, dynamic>.from(json['entry'] as Map));
   }
 
   Future<void> deleteKnowledgeEntry(String id) =>
-      _send('DELETE', '/knowledge-base/$id');
+      _send('DELETE', '/knowledge-base/${_segment(id)}');
 
   Future<UrduDocument> createUrduDocument(UrduDocument document) async {
     final Map<String, dynamic> json = await _send(
@@ -413,7 +417,7 @@ class ApiService {
   ) async {
     final Map<String, dynamic> json = await _send(
       'PUT',
-      '/urdu-documents/$id',
+      '/urdu-documents/${_segment(id)}',
       body: document.toJson(),
     );
     return UrduDocument.fromJson(
@@ -422,7 +426,7 @@ class ApiService {
   }
 
   Future<void> deleteUrduDocument(String id) =>
-      _send('DELETE', '/urdu-documents/$id');
+      _send('DELETE', '/urdu-documents/${_segment(id)}');
 
   Future<Lawyer> createLawyer(Lawyer lawyer) async {
     final Map<String, dynamic> json = await _send(

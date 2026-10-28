@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:url_launcher/url_launcher.dart';
 
+import '../core/app_config.dart';
 import '../core/app_scope.dart';
+import '../core/contact_links.dart';
 import '../data/content_data.dart';
 import '../models/models.dart';
 import '../theme/app_theme.dart';
@@ -345,9 +347,7 @@ class _FindLawyersScreenState extends State<FindLawyersScreen> {
                           style: TextStyle(
                             fontSize: 12,
                             height: 1.4,
-                            color: AppColors.darkGreen.withValues(
-                              alpha: 0.85,
-                            ),
+                            color: AppColors.darkGreen.withValues(alpha: 0.85),
                           ),
                         ),
                       ),
@@ -383,8 +383,7 @@ class _FindLawyersScreenState extends State<FindLawyersScreen> {
                           ),
                         ),
                       ),
-                    if (_city == 'all' && _expertise == 'all')
-                      const Spacer(),
+                    if (_city == 'all' && _expertise == 'all') const Spacer(),
                     Flexible(
                       child: Text(
                         '${results.length} demo profiles',
@@ -461,6 +460,9 @@ class LawyerCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final Uri? callUri = ContactLinks.tel(lawyer.phoneNumber);
+    final Uri? whatsappUri = ContactLinks.whatsapp(lawyer.whatsapp);
+
     Widget action(IconData icon, String tooltip, VoidCallback? onPressed) {
       return IconButton.filledTonal(
         tooltip: tooltip,
@@ -607,20 +609,16 @@ class LawyerCard extends StatelessWidget {
               action(
                 Icons.call,
                 'Call',
-                lawyer.phoneNumber.isEmpty
-                    ? null
-                    : () => launchUrl(Uri.parse('tel:${lawyer.phoneNumber}')),
+                callUri == null ? null : () => launchUrl(callUri),
               ),
               const SizedBox(width: 6),
               action(
                 Icons.chat,
                 'WhatsApp',
-                lawyer.whatsapp.isEmpty
+                whatsappUri == null
                     ? null
                     : () => launchUrl(
-                        Uri.parse(
-                          'https://wa.me/${lawyer.whatsapp.replaceAll('+', '')}',
-                        ),
+                        whatsappUri,
                         mode: LaunchMode.externalApplication,
                       ),
               ),
@@ -643,11 +641,16 @@ class LawyerAvatar extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    // Directory data comes from the server: never fetch arbitrary schemes or
+    // cleartext hosts into an image widget.
+    final String? imageUrl = AppConfig.isAllowedRemoteUrl(lawyer.image)
+        ? lawyer.image
+        : null;
     return CircleAvatar(
       radius: radius,
       backgroundColor: AppColors.lightGreen,
-      foregroundImage: lawyer.image.isEmpty ? null : NetworkImage(lawyer.image),
-      onForegroundImageError: lawyer.image.isEmpty ? null : (_, _) {},
+      foregroundImage: imageUrl == null ? null : NetworkImage(imageUrl),
+      onForegroundImageError: imageUrl == null ? null : (_, _) {},
       child: Text(
         lawyer.initials,
         style: TextStyle(

@@ -100,7 +100,7 @@ class _TextAssistantScreenState extends State<TextAssistantScreen> {
     try {
       if (!services.config.cloudEnabled) {
         answer = await LocalLegalBrain.answerWithCorpus(question);
-      } else if (services.config.cloudEnabled) {
+      } else if (services.config.directAiEnabled) {
         answer = await services.multiProviderAi.askLegalQuestion(
           question,
           history: history,
